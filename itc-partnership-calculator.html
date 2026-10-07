@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>THE Cafe × ITC — Beverage Partnership Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#EEF2F3; --panel:#FFFFFF; --ink:#1E2A33; --muted:#5E6B73; --line:#D3DBDF;
+  --pine:#2F5D50; --pine-soft:#DCE8E4; --saffron:#D99A1E; --saffron-soft:#F7E9C8; --loss:#B23A3A;
+  --input-bg:#F3F8F5; --input-line:#9CC3B4;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#131B20; --panel:#1B252C; --ink:#E6ECEF; --muted:#9AA7AE; --line:#2C3A42;
+    --pine:#6FB39C; --pine-soft:#20372F; --saffron:#E9B44C; --saffron-soft:#3A2F17; --loss:#E07070;
+    --input-bg:#18302A; --input-line:#3E7564;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#131B20; --panel:#1B252C; --ink:#E6ECEF; --muted:#9AA7AE; --line:#2C3A42;
+  --pine:#6FB39C; --pine-soft:#20372F; --saffron:#E9B44C; --saffron-soft:#3A2F17; --loss:#E07070;
+  --input-bg:#18302A; --input-line:#3E7564;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:"Bricolage Grotesque","Public Sans",system-ui,sans-serif;font-weight:700;line-height:1.15;margin:0}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 20px 48px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:24px}
+header h1{font-size:clamp(24px,3.4vw,36px);letter-spacing:-.01em}
+header p{margin:4px 0 0;color:var(--muted)}
+.actions{display:flex;gap:8px}
+button{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 14px;border-radius:8px;cursor:pointer}
+button:hover{border-color:var(--pine)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--saffron);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(300px,380px) 1fr;gap:24px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+aside{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 18px 8px;position:sticky;top:calc(16px + env(safe-area-inset-top,0px));max-height:calc(100vh - 32px);overflow:auto}
+@media (max-width:900px){aside{position:static;max-height:none}}
+.legend{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:12px}
+.swatch{width:16px;height:16px;border-radius:4px;background:var(--input-bg);border:1.5px solid var(--input-line)}
+details{border-top:1px solid var(--line);padding:10px 0}
+details:first-of-type{border-top:0}
+summary{cursor:pointer;font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:16px;list-style:none;display:flex;justify-content:space-between}
+summary::after{content:"+";color:var(--muted)}
+details[open] summary::after{content:"–"}
+.field{display:grid;grid-template-columns:1fr 118px;gap:8px;align-items:center;margin:10px 0}
+.field label{font-size:14px}
+.field small{display:block;color:var(--muted);font-size:12px}
+.field input[type=number]{width:100%;font:inherit;font-weight:600;text-align:right;padding:7px 9px;border-radius:7px;border:1.5px solid var(--input-line);background:var(--input-bg);color:var(--ink)}
+.field .derived{text-align:right;font-weight:600;color:var(--muted);padding-right:10px}
+.inwrap{position:relative}
+.inwrap .unit{position:absolute;right:28px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+.inwrap.pct input{padding-right:42px}
+.split{display:flex;height:8px;border-radius:4px;overflow:hidden;margin:2px 0 6px}
+.split span:first-child{background:var(--saffron)} .split span:last-child{background:var(--pine)}
+.splitlab{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+main{display:flex;flex-direction:column;gap:24px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
+.hero h2{font-size:clamp(22px,2.8vw,32px);font-weight:500;letter-spacing:-.01em;max-width:30ch}
+.hero h2 b{font-weight:700}
+.hero .itc{color:var(--saffron)} .hero .cafe{color:var(--pine)} .hero .neg{color:var(--loss)}
+.slider{margin:22px 0 6px}
+.slider input[type=range]{width:100%;accent-color:var(--pine)}
+.slider .row{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13px;color:var(--muted)}
+.slider .row input{width:150px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:18px;border-top:1px solid var(--line)}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{padding:14px 12px 0 0}
+.stat dt{font-size:13px;color:var(--muted)}
+.stat dd{margin:2px 0 0;font-size:20px;font-weight:600}
+.scale{position:relative;height:56px;margin-top:22px}
+.scale .bar{position:absolute;left:0;right:0;top:22px;height:10px;border-radius:5px;background:linear-gradient(90deg,var(--loss) 0 var(--be),var(--pine) var(--be) 100%);opacity:.85}
+.mark{position:absolute;top:0;transform:translateX(-50%);font-size:12px;white-space:nowrap;text-align:center}
+.mark::after{content:"";display:block;width:2px;height:22px;margin:2px auto 0;background:var(--ink)}
+.mark.you::after{background:var(--saffron);width:4px;border-radius:2px}
+.scale .ends{position:absolute;top:38px;left:0;right:0;display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media (max-width:1100px){.charts{grid-template-columns:1fr}}
+.card h3{font-size:18px;margin-bottom:12px}
+.chartbox{position:relative;height:280px}
+.tabs{display:flex;gap:6px;margin-bottom:12px}
+.tabs button{padding:6px 12px}
+.tabs button[aria-selected=true]{background:var(--pine);border-color:var(--pine);color:#fff}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:14px}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:12.5px;vertical-align:bottom;white-space:normal}
+th:first-child,td:first-child{text-align:left}
+td.itc{background:var(--saffron-soft)} td.cafe{font-weight:600}
+td.neg{color:var(--loss)}
+tr.be td{border-bottom:2px solid var(--saffron)}
+footer{color:var(--muted);font-size:13px;margin-top:8px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>THE Himalayan Experience Cafe × ITC</h1>
+      <p>Beverage partnership calculator. All figures in ₹, excluding GST.</p>
+    </div>
+    <div class="actions">
+      <button id="theme" type="button" aria-label="Toggle light or dark theme">Theme</button>
+      <button id="reset" type="button">Reset inputs</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <aside aria-label="Inputs">
+      <div class="legend"><span class="swatch"></span>Green fields are inputs. Everything else updates as you type.</div>
+
+      <details open>
+        <summary>Revenue split</summary>
+        <div class="field"><label for="ib">Beverage — ITC share<small>THE Cafe gets the balance</small></label><div class="inwrap pct"><input type="number" id="ib" min="0" max="100" step="1"><span class="unit">%</span></div></div>
+        <div class="split" id="bsplit"><span></span><span></span></div>
+        <div class="splitlab"><span id="bsplitA"></span><span id="bsplitB"></span></div>
+        <div class="field"><label for="if">Food — ITC share<small>THE Cafe gets the balance</small></label><div class="inwrap pct"><input type="number" id="if" min="0" max="100" step="1"><span class="unit">%</span></div></div>
+        <div class="split" id="fsplit"><span></span><span></span></div>
+        <div class="splitlab"><span id="fsplitA"></span><span id="fsplitB"></span></div>
+      </details>
+
+      <details open>
+        <summary>Sales mix</summary>
+        <div class="field"><label for="mix">Beverage share of total revenue<small>Food is the balance</small></label><div class="inwrap pct"><input type="number" id="mix" min="0" max="100" step="1"><span class="unit">%</span></div></div>
+        <div class="field"><label>Food share of total revenue</label><div class="derived" id="fmixOut"></div></div>
+      </details>
+
+      <details open>
+        <summary>THE Cafe variable costs</summary>
+        <div class="field"><label for="cogs">Beverage cost<small>% of beverage revenue</small></label><div class="inwrap pct"><input type="number" id="cogs" min="0" max="100" step="0.5"><span class="unit">%</span></div></div>
+        <div class="field"><label for="oth">Consumables, maintenance &amp; packaging<small>% of beverage revenue</small></label><div class="inwrap pct"><input type="number" id="oth" min="0" max="100" step="0.5"><span class="unit">%</span></div></div>
+      </details>
+
+      <details open>
+        <summary>THE Cafe team &amp; fixed costs</summary>
+        <div class="field"><label for="bh">Number of baristas</label><input type="number" id="bh" min="0" step="1"></div>
+        <div class="field"><label for="bs">Salary per barista<small>per month</small></label><input type="number" id="bs" min="0" step="500"></div>
+        <div class="field"><label for="mh">Number of managers</label><input type="number" id="mh" min="0" step="1"></div>
+        <div class="field"><label for="ms">Salary per manager<small>per month</small></label><input type="number" id="ms" min="0" step="500"></div>
+        <div class="field"><label for="bon">Annual bonus<small>% of annual salary</small></label><div class="inwrap pct"><input type="number" id="bon" min="0" max="100" step="0.5"><span class="unit">%</span></div></div>
+        <div class="field"><label for="uni">Uniforms<small>per person per year</small></label><input type="number" id="uni" min="0" step="500"></div>
+        <div class="field"><label for="ofix">Other fixed costs<small>per month, optional</small></label><input type="number" id="ofix" min="0" step="1000"></div>
+        <div class="field"><label>Total fixed cost per month</label><div class="derived" id="fixOut"></div></div>
+      </details>
+
+      <details>
+        <summary>THE Cafe capital investment</summary>
+        <div class="field"><label for="c1">Espresso machine</label><input type="number" id="c1" min="0" step="5000"></div>
+        <div class="field"><label for="c2">Grinder</label><input type="number" id="c2" min="0" step="5000"></div>
+        <div class="field"><label for="c3">Other equipment</label><input type="number" id="c3" min="0" step="5000"></div>
+        <div class="field"><label for="c4">Glassware &amp; smallwares</label><input type="number" id="c4" min="0" step="5000"></div>
+        <div class="field"><label for="c5">Other capex</label><input type="number" id="c5" min="0" step="5000"></div>
+        <div class="field"><label>Total capital investment</label><div class="derived" id="capexOut"></div></div>
+      </details>
+
+      <details>
+        <summary>Table &amp; chart range</summary>
+        <div class="field"><label for="start">Starting monthly revenue</label><input type="number" id="start" min="0" step="10000"></div>
+        <div class="field"><label for="step">Step between rows</label><input type="number" id="step" min="1000" step="10000"></div>
+      </details>
+    </aside>
+
+    <main>
+      <section class="card hero" aria-live="polite">
+        <h2 id="headline"></h2>
+        <div class="slider">
+          <div class="row"><label for="rev">Monthly revenue to test</label><input type="number" id="rev" min="0" step="10000" class="field-like" style="font:inherit;font-weight:600;text-align:right;padding:6px 9px;border-radius:7px;border:1.5px solid var(--input-line);background:var(--input-bg);color:var(--ink)"></div>
+          <input type="range" id="revRange" min="0" max="1500000" step="10000" aria-label="Monthly revenue slider">
+        </div>
+        <dl class="stats">
+          <div class="stat"><dt>Break-even revenue</dt><dd id="sBE"></dd></div>
+          <div class="stat"><dt>THE Cafe margin</dt><dd id="sMargin"></dd></div>
+          <div class="stat"><dt>Capex payback</dt><dd id="sPay"></dd></div>
+          <div class="stat"><dt>Revenue to ITC per year</dt><dd id="sITCyr"></dd></div>
+        </dl>
+        <div class="scale" id="scale">
+          <div class="bar"></div>
+          <div class="mark" id="mBE"></div>
+          <div class="mark you" id="mYou"></div>
+          <div class="ends"><span>₹0</span><span id="scaleMax"></span></div>
+        </div>
+      </section>
+
+      <div class="charts">
+        <section class="card"><h3>Monthly</h3><div class="chartbox"><canvas id="chartM" aria-label="Monthly chart"></canvas></div></section>
+        <section class="card"><h3>Annual</h3><div class="chartbox"><canvas id="chartA" aria-label="Annual chart"></canvas></div></section>
+      </div>
+
+      <section class="card">
+        <div class="tabs" role="tablist">
+          <button role="tab" id="tabM" aria-selected="true">Monthly table</button>
+          <button role="tab" id="tabA" aria-selected="false">Annual table</button>
+        </div>
+        <div class="tablewrap"><table id="tbl"></table></div>
+        <footer>Revenue shares are calculated on net revenue excluding GST. Highlighted line marks the first row at or above break-even.</footer>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+const DEFAULTS={ib:20,if:80,mix:60,cogs:35,oth:10,bh:2,bs:22500,mh:1,ms:35000,bon:8,uni:6000,ofix:0,c1:200000,c2:100000,c3:50000,c4:40000,c5:0,start:100000,step:100000,rev:700000};
+const KEY="the-cafe-itc-calc-v2";
+let S={...DEFAULTS};
+try{const saved=JSON.parse(localStorage.getItem(KEY)||"null"); if(saved) S={...DEFAULTS,...saved};}catch(e){}
+
+const inr=new Intl.NumberFormat("en-IN",{maximumFractionDigits:0});
+const rupee=v=>(v<0?"−₹":"₹")+inr.format(Math.abs(Math.round(v)));
+const lakh=v=>{const a=Math.abs(v)/1e5;return (v<0?"−₹":"₹")+(a>=100?inr.format(Math.round(a)):a.toFixed(a>=10?1:2).replace(/\.?0+$/,""))+"L";};
+const pct=v=>(Math.round(v*1000)/10)+"%";
+const $=id=>document.getElementById(id);
+
+const ids=Object.keys(DEFAULTS);
+ids.forEach(k=>{const el=$(k); if(!el) return; el.value=S[k];
+  el.addEventListener("input",()=>{const v=parseFloat(el.value); if(!isNaN(v)){S[k]=v; if(k==="rev") $("revRange").value=v; update();}});});
+$("revRange").value=S.rev;
+$("revRange").addEventListener("input",e=>{S.rev=+e.target.value;$("rev").value=S.rev;update();});
+$("reset").addEventListener("click",()=>{S={...DEFAULTS};ids.forEach(k=>{if($(k))$(k).value=S[k]});$("revRange").value=S.rev;update();});
+
+function model(){
+  const p=x=>Math.min(Math.max(x,0),100)/100;
+  const ib=p(S.ib), iff=p(S.if), mix=p(S.mix), cogs=p(S.cogs), oth=p(S.oth), bon=p(S.bon);
+  const sb=1-ib, sf=1-iff, fmix=1-mix;
+  const sal=S.bh*S.bs+S.mh*S.ms;
+  const fix=sal+sal*bon+(S.bh+S.mh)*S.uni/12+S.ofix;
+  const capex=S.c1+S.c2+S.c3+S.c4+S.c5;
+  const den=mix*(sb-cogs-oth)+fmix*sf;
+  const be=den>0?fix/den:null;
+  const at=R=>{const B=R*mix,F=R*fmix,itcB=B*ib,itcF=F*iff,itc=itcB+itcF,cafe=R-itc,bevCost=B*cogs,othCost=B*oth,cost=bevCost+othCost+fix,profit=cafe-cost;
+    return {R,B,F,itcB,itcF,itc,cafe,bevCost,othCost,fix,cost,profit,margin:cafe?profit/cafe:0,payback:profit>0?capex/profit:null};};
+  return {ib,iff,mix,sb,sf,fmix,fix,capex,be,at};
+}
+
+let tableMode="M", chartM, chartA;
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+function update(){
+  try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}
+  const m=model(), x=m.at(S.rev);
+  $("bsplit").children[0].style.width=pct(m.ib); $("bsplit").children[1].style.width=pct(m.sb);
+  $("bsplitA").textContent="ITC "+pct(m.ib); $("bsplitB").textContent="THE Cafe "+pct(m.sb);
+  $("fsplit").children[0].style.width=pct(m.iff); $("fsplit").children[1].style.width=pct(m.sf);
+  $("fsplitA").textContent="ITC "+pct(m.iff); $("fsplitB").textContent="THE Cafe "+pct(m.sf);
+  $("fmixOut").textContent=pct(m.fmix);
+  $("fixOut").textContent=rupee(m.fix);
+  $("capexOut").textContent=rupee(m.capex);
+
+  const pw=x.profit>=0?`THE Cafe makes <b class="cafe">${lakh(x.profit)}</b> profit`:`THE Cafe loses <b class="neg">${lakh(-x.profit)}</b>`;
+  $("headline").innerHTML=`At <b>${lakh(S.rev)}</b> a month, ITC earns <b class="itc">${lakh(x.itc)}</b> and ${pw}.`;
+  $("sBE").textContent=m.be===null?"Not reachable":lakh(m.be)+" / mo";
+  $("sMargin").textContent=pct(x.margin);
+  $("sPay").textContent=x.payback===null?"Not recovered":(x.payback<1?"< 1 month":x.payback.toFixed(1)+" months");
+  $("sITCyr").textContent=lakh(x.itc*12);
+
+  const rows=[...Array(10)].map((_,i)=>m.at(S.start+i*S.step));
+  const maxR=Math.max(rows[9].R,S.rev,(m.be||0)*1.25,1);
+  $("revRange").max=Math.ceil(maxR*1.2/100000)*100000;
+  const scaleMax=+$("revRange").max;
+  const bePos=m.be===null?100:Math.min(m.be/scaleMax*100,100);
+  $("scale").style.setProperty("--be",bePos+"%");
+  const mBE=$("mBE"); mBE.style.left=bePos+"%"; mBE.textContent=m.be===null?"No break-even":"Break-even "+lakh(m.be); mBE.style.display="block";
+  const mY=$("mYou"); mY.style.left=Math.min(S.rev/scaleMax*100,100)+"%"; mY.textContent="";
+  $("scaleMax").textContent=lakh(scaleMax);
+
+  drawTable(rows,m); drawCharts(rows);
+}
+
+function drawTable(rows,m){
+  const k=tableMode==="A"?12:1;
+  const head=tableMode==="A"
+    ? ["Monthly revenue","Annual revenue","Annual revenue to ITC","Annual THE Cafe revenue","Annual THE Cafe cost","Annual THE Cafe profit"]
+    : ["Total revenue","Beverage revenue","Food revenue","ITC share of beverage","ITC share of food","Total revenue to ITC","THE Cafe revenue","Beverage cost","Consumables, maintenance & packaging","Fixed cost","THE Cafe total cost","THE Cafe profit","Margin","Capex payback (months)"];
+  let beIdx=rows.findIndex(r=>r.profit>=0);
+  let h="<thead><tr>"+head.map(t=>`<th>${t}</th>`).join("")+"</tr></thead><tbody>";
+  rows.forEach((r,i)=>{
+    const neg=r.profit<0?" neg":"";
+    const cls=i===beIdx?' class="be"':"";
+    if(tableMode==="A"){
+      h+=`<tr${cls}><td>${rupee(r.R)}</td><td>${rupee(r.R*12)}</td><td class="itc">${rupee(r.itc*12)}</td><td>${rupee(r.cafe*12)}</td><td>${rupee(r.cost*12)}</td><td class="cafe${neg}">${rupee(r.profit*12)}</td></tr>`;
+    }else{
+      h+=`<tr${cls}><td>${rupee(r.R)}</td><td>${rupee(r.B)}</td><td>${rupee(r.F)}</td><td>${rupee(r.itcB)}</td><td>${rupee(r.itcF)}</td><td class="itc">${rupee(r.itc)}</td><td>${rupee(r.cafe)}</td><td>${rupee(r.bevCost)}</td><td>${rupee(r.othCost)}</td><td>${rupee(r.fix)}</td><td>${rupee(r.cost)}</td><td class="cafe${neg}">${rupee(r.profit)}</td><td class="${neg}">${pct(r.margin)}</td><td>${r.payback===null?"—":r.payback.toFixed(1)}</td></tr>`;
+    }
+  });
+  $("tbl").innerHTML=h+"</tbody>";
+}
+
+function drawCharts(rows){
+  if(typeof Chart==="undefined") return;
+  const ink=css("--ink"), muted=css("--muted"), line=css("--line"), sa=css("--saffron"), pi=css("--pine"), lo=css("--loss");
+  const labels=rows.map(r=>lakh(r.R));
+  const labelsA=rows.map(r=>lakh(r.R*12));
+  const base={responsive:true,maintainAspectRatio:false,animation:{duration:250},
+    plugins:{legend:{labels:{color:ink,font:{family:"Public Sans"}}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${rupee(c.parsed.y)}`}}},
+    scales:{x:{ticks:{color:muted},grid:{color:line}},y:{ticks:{color:muted,callback:v=>lakh(v)},grid:{color:line}}}};
+  const dsM=[
+    {label:"Revenue to ITC",data:rows.map(r=>r.itc),borderColor:sa,backgroundColor:sa,tension:.2},
+    {label:"THE Cafe total cost",data:rows.map(r=>r.cost),borderColor:muted,backgroundColor:muted,borderDash:[5,4],tension:.2},
+    {label:"THE Cafe profit",data:rows.map(r=>r.profit),borderColor:pi,backgroundColor:pi,borderWidth:3,tension:.2}];
+  const dsA=[
+    {label:"Revenue to ITC",data:rows.map(r=>r.itc*12),backgroundColor:sa},
+    {label:"THE Cafe total cost",data:rows.map(r=>r.cost*12),backgroundColor:muted},
+    {label:"THE Cafe profit",data:rows.map(r=>r.profit*12),backgroundColor:rows.map(r=>r.profit<0?lo:pi)}];
+  if(!chartM){
+    chartM=new Chart($("chartM"),{type:"line",data:{labels,datasets:dsM},options:JSON.parse(JSON.stringify(base))});
+    chartM.options.plugins.tooltip.callbacks.label=base.plugins.tooltip.callbacks.label;
+    chartM.options.scales.y.ticks.callback=base.scales.y.ticks.callback;
+    chartA=new Chart($("chartA"),{type:"bar",data:{labels:labelsA,datasets:dsA},options:JSON.parse(JSON.stringify(base))});
+    chartA.options.plugins.tooltip.callbacks.label=base.plugins.tooltip.callbacks.label;
+    chartA.options.scales.y.ticks.callback=base.scales.y.ticks.callback;
+  }else{
+    chartM.data.labels=labels; chartM.data.datasets.forEach((d,i)=>Object.assign(d,dsM[i]));
+    chartA.data.labels=labelsA; chartA.data.datasets.forEach((d,i)=>Object.assign(d,dsA[i]));
+    [chartM,chartA].forEach(c=>{c.options.plugins.legend.labels.color=ink;c.options.scales.x.ticks.color=muted;c.options.scales.y.ticks.color=muted;c.options.scales.x.grid.color=line;c.options.scales.y.grid.color=line;});
+  }
+  chartM.update(); chartA.update();
+}
+
+$("tabM").addEventListener("click",()=>{tableMode="M";$("tabM").setAttribute("aria-selected","true");$("tabA").setAttribute("aria-selected","false");update();});
+$("tabA").addEventListener("click",()=>{tableMode="A";$("tabA").setAttribute("aria-selected","true");$("tabM").setAttribute("aria-selected","false");update();});
+
+const root=document.documentElement;
+$("theme").addEventListener("click",()=>{
+  const dark=root.dataset.theme?root.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme=dark?"light":"dark"; update();
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",update);
+update();
+</script>
+</body>
+</html>
